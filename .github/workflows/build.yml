@@ -51,18 +51,21 @@ jobs:
 
       - name: Prepare Build Directories
         run: |
-          mkdir -p build/${{ matrix.build_type | toLower }}/rust
-          mkdir -p build/${{ matrix.build_type | toLower }}
+          mkdir -p build/${{ matrix.build_type }}/rust
+          mkdir -p build/${{ matrix.build_type }}
 
       - name: Build Rust code
         working-directory: rust
         run: |
-          CARGO_TARGET_DIR=${GITHUB_WORKSPACE}/build/${{ matrix.build_type | toLower }}/rust \
-          cargo build --verbose --target $TARGET ${{ matrix.build_type == 'Release' && '--release' || '' }}
+          if [ "${{ matrix.build_type }}" == "Release" ]; then
+            CARGO_TARGET_DIR=${GITHUB_WORKSPACE}/build/Release/rust cargo build --verbose --target $TARGET --release
+          else
+            CARGO_TARGET_DIR=${GITHUB_WORKSPACE}/build/Debug/rust cargo build --verbose --target $TARGET
+          fi
 
       - name: Build CMake project
-        working-directory: build/${{ matrix.build_type | toLower }}
         run: |
+          cd build/${{ matrix.build_type }}
           cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           make -j$(nproc)
 
@@ -72,7 +75,7 @@ jobs:
           mkdir -p deploy/addons/amxmodx/modules
           mkdir -p deploy/addons/amxmodx/configs
           mkdir -p deploy/addons/amxmodx/scripting/include
-          cp build/release/*.so deploy/addons/amxmodx/modules
+          cp build/Release/*.so deploy/addons/amxmodx/modules
           strip --strip-debug deploy/addons/amxmodx/modules/*.so
           cp configs/* deploy/addons/amxmodx/configs
           cp scripting/* deploy/addons/amxmodx/scripting/include
